@@ -127,7 +127,7 @@ public class Accounts {
      * @return balance
      * @param
      */
-     public double getBalance()
+     public synchronized double getBalance()
      {
          return balance;
      }

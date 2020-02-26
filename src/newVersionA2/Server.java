@@ -35,7 +35,11 @@ public class Server extends Thread {
 	private String serverThreadId; /* Identification of the two server threads - Thread1, Thread2 */
 	private static String serverThreadRunningStatus1; /* Running status of thread 1 - idle, running, terminated */
 	private static String serverThreadRunningStatus2; /* Running status of thread 2 - idle, running, terminated */
-
+	
+	//lockers for synchronization
+	  private final Object depositLocker = new Object();
+	  private final Object withdrawLocker = new Object();
+	  private final Object queryLocker = new Object();
 	/**
 	 * Constructor method of Client class
 	 * 
@@ -275,61 +279,66 @@ public class Server extends Thread {
 				 */
 
 				Network.transferIn(trans); /* Transfer a transaction from the network input buffer */
-
+				
 				accIndex = findAccount(trans.getAccountNumber());
-				/* Process deposit operation */
-				if (trans.getOperationType().equals("DEPOSIT")) {
-					newBalance = deposit(accIndex, trans.getTransactionAmount());
-					trans.setTransactionBalance(newBalance);
-					trans.setTransactionStatus("done");
+				synchronized(trans) {
+					/* Process deposit operation */
+					if (trans.getOperationType().equals("DEPOSIT")) {
+						newBalance = deposit(accIndex, trans.getTransactionAmount());
+						trans.setTransactionBalance(newBalance);
+						trans.setTransactionStatus("done");
 
-					/*
-					 * System.out.println("\n DEBUG : Server.processTransactions() - Deposit of " +
-					 * trans.getTransactionAmount() + " in account " + trans.getAccountNumber());
-					 */
-				} else
-				/* Process withdraw operation */
-				if (trans.getOperationType().equals("WITHDRAW")) {
-					newBalance = withdraw(accIndex, trans.getTransactionAmount());
-					trans.setTransactionBalance(newBalance);
-					trans.setTransactionStatus("done");
+						/*
+						 * System.out.println("\n DEBUG : Server.processTransactions() - Deposit of " +
+						 * trans.getTransactionAmount() + " in account " + trans.getAccountNumber());
+						 */
+					} else
+					/* Process withdraw operation */
+					if (trans.getOperationType().equals("WITHDRAW")) {
+						newBalance = withdraw(accIndex, trans.getTransactionAmount());
+						trans.setTransactionBalance(newBalance);
+						trans.setTransactionStatus("done");
 
-					/*
-					 * System.out.println("\n DEBUG : Server.processTransactions() - Withdrawal of "
-					 * + trans.getTransactionAmount() + " from account " +
-					 * trans.getAccountNumber());
-					 */
-				} else
-				/* Process query operation */
-				if (trans.getOperationType().equals("QUERY")) {
-					newBalance = query(accIndex);
-					trans.setTransactionBalance(newBalance);
-					trans.setTransactionStatus("done");
+						/*
+						 * System.out.println("\n DEBUG : Server.processTransactions() - Withdrawal of "
+						 * + trans.getTransactionAmount() + " from account " +
+						 * trans.getAccountNumber());
+						 */
+					} else
+					/* Process query operation */
+					if (trans.getOperationType().equals("QUERY")) {
+						newBalance = query(accIndex);
+						trans.setTransactionBalance(newBalance);
+						trans.setTransactionStatus("done");
+
+						/*
+						 * System.out.
+						 * println("\n DEBUG : Server.processTransactions() - Obtaining balance from account"
+						 * + trans.getAccountNumber());
+						 */
+					}
+
+					// while (Network.getOutBufferStatus().equals("full"))
+					// {
+					// Thread.yield(); /* Yield the cpu if the network output buffer is full */
+					// }
 
 					/*
 					 * System.out.
-					 * println("\n DEBUG : Server.processTransactions() - Obtaining balance from account"
+					 * println("\n DEBUG : Server.processTransactions() - transferring out account "
 					 * + trans.getAccountNumber());
 					 */
+
+					Network.transferOut(
+							trans); /*
+									 * Transfer a completed transaction from the server to the network output buffer
+									 */
+					setNumberOfTransactions(
+							(getNumberOfTransactions() + 1)); /* Count the number of transactions processed */
+				
+					
 				}
 
-				// while (Network.getOutBufferStatus().equals("full"))
-				// {
-				// Thread.yield(); /* Yield the cpu if the network output buffer is full */
-				// }
-
-				/*
-				 * System.out.
-				 * println("\n DEBUG : Server.processTransactions() - transferring out account "
-				 * + trans.getAccountNumber());
-				 */
-
-				Network.transferOut(
-						trans); /*
-								 * Transfer a completed transaction from the server to the network output buffer
-								 */
-				setNumberOfTransactions(
-						(getNumberOfTransactions() + 1)); /* Count the number of transactions processed */
 			}
 		}
 
@@ -348,28 +357,34 @@ public class Server extends Thread {
 	 * @param i, amount
 	 */
 
-	public double deposit(int i, double amount) {
-		double curBalance; /* Current account balance */
+	 public double deposit(int i, double amount) {
+		 synchronized(depositLocker) {
+				double curBalance; /* Current account balance */
 
-		curBalance = account[i].getBalance(); /* Get current account balance */
+				curBalance = account[i].getBalance(); /* Get current account balance */
 
-		/*
-		 * NEW : A server thread is blocked before updating the 10th , 20th, ... 70th
-		 * account balance in order to simulate an inconsistency situation
-		 */
-		if (((i + 1) % 10) == 0) {
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
+				/*
+				 * NEW : A server thread is blocked before updating the 10th , 20th, ... 70th
+				 * account balance in order to simulate an inconsistency situation
+				 */
+				if (((i + 1) % 10) == 0) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
 
-			}
-		}
+					}
+				}
 
-		System.out.println("\n DEBUG : Server.deposit - " + "i " + i + " Current balance " + curBalance + " Amount "
-				+ amount + " " + getServerThreadId());
+				System.out.println("\n DEBUG : Server.deposit - " + "i " + i + " Current balance " + curBalance + " Amount "
+						+ amount + " " + getServerThreadId());
 
-		account[i].setBalance(curBalance + amount); /* Deposit amount in the account */
-		return account[i].getBalance(); /* Return updated account balance */
+				account[i].setBalance(curBalance + amount); /* Deposit amount in the account */
+				//notify();
+				depositLocker.notifyAll();
+				return account[i].getBalance(); /* Return updated account balance */
+				
+		 }
+
 	}
 
 	/**
@@ -381,15 +396,28 @@ public class Server extends Thread {
 
 	public double withdraw(int i, double amount) {
 		double curBalance; /* Current account balance */
+		
+		//if the amt is less than 
+		
+		synchronized(withdrawLocker) {
+			curBalance = account[i].getBalance(); /* Get current account balance */
 
-		curBalance = account[i].getBalance(); /* Get current account balance */
+			System.out.println("\n DEBUG : Server.withdraw - " + "i " + i + " Current balance " + curBalance + " Amount "
+					+ amount + " " + getServerThreadId());
+
+			account[i].setBalance(curBalance - amount); /* Withdraw amount in the account */
+			withdrawLocker.notifyAll();
+			return account[i].getBalance(); /* Return updated account balance */
+		}
+
+		/*curBalance = account[i].getBalance(); //* Get current account balance 
 
 		System.out.println("\n DEBUG : Server.withdraw - " + "i " + i + " Current balance " + curBalance + " Amount "
 				+ amount + " " + getServerThreadId());
 
-		account[i].setBalance(curBalance - amount); /* Withdraw amount in the account */
-		return account[i].getBalance(); /* Return updated account balance */
-
+		account[i].setBalance(curBalance - amount); // Withdraw amount in the account 
+		return account[i].getBalance(); // Return updated account balance 
+		*/
 	}
 
 	/**
@@ -400,14 +428,18 @@ public class Server extends Thread {
 	 */
 
 	public double query(int i) {
-		double curBalance; /* Current account balance */
+		synchronized(queryLocker) {
+			double curBalance; /* Current account balance */
 
-		curBalance = account[i].getBalance(); /* Get current account balance */
+			curBalance = account[i].getBalance(); /* Get current account balance */
 
-		System.out.println(
-				"\n DEBUG : Server.query - " + "i " + i + " Current balance " + curBalance + " " + getServerThreadId());
+			System.out.println(
+					"\n DEBUG : Server.query - " + "i " + i + " Current balance " + curBalance + " " + getServerThreadId());
 
-		return curBalance; /* Return current account balance */
+			queryLocker.notifyAll();
+			return curBalance; /* Return current account balance */
+		}
+
 	}
 
 	/**
