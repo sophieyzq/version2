@@ -561,7 +561,16 @@ public class Network extends Thread {
     	
     	while (true)
     	{
-    		/*................................................................................................................................................................*/
-    	}    
+		/* Implement the code for the run method */
+    		//infinite loop ends when server and client are disconnected
+    		if(clientConnectionStatus.equalsIgnoreCase("disconnected") && serverConnectionStatus.equalsIgnoreCase("disconnected")) {
+    	        System.out.println("\n Terminating network thread - Client disconnected Server disconnected");
+    	        System.exit(0);
+    		}
+    			
+    		//otherwise, it consumes cpu
+    		Thread.yield();
+    		
+    	}     
     }
 }

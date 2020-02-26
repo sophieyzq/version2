@@ -70,6 +70,7 @@ public class Server extends Thread {
 	 * @return numberOfTransactions
 	 * @param
 	 */
+
 	public int getNumberOfTransactions() {
 		return numberOfTransactions;
 	}
@@ -260,11 +261,11 @@ public class Server extends Thread {
 
 		/* Process the accounts until the client disconnects */
 		while ((!Network.getClientConnectionStatus().equals("disconnected"))) {
-			// while ( (Network.getInBufferStatus().equals("empty") &&
-			// !Network.getClientConnectionStatus().equals("disconnected")) )
-			// {
-			// Thread.yield(); /* Yield the cpu if the network input buffer is empty */
-			// }
+			 while ( (Network.getInBufferStatus().equals("empty") &&
+			 !Network.getClientConnectionStatus().equals("disconnected")) )
+			 {
+			 Thread.yield(); /* Yield the cpu if the network input buffer is empty */
+			 }
 
 			if (!Network.getInBufferStatus().equals("empty")) {
 				/*
@@ -441,7 +442,26 @@ public class Server extends Thread {
 		this.processTransactions(trans);
 
 		serverEndTime = System.currentTimeMillis();
-		System.out.println("\n Terminating server thread - " + " Running time " + (serverEndTime - serverStartTime)
+		System.out.println("\n Terminating server " + this.getServerThreadId() + " Running time " + (serverEndTime - serverStartTime)
 				+ " milliseconds");
+		//System.out.println(Network.getClientConnectionStatus().equalsIgnoreCase("disconnected"));
+		//while(!(Network.getClientConnectionStatus().equalsIgnoreCase("disconnected")));
+		//System.out.println(serverThreadRunningStatus1);
+		//System.out.println(serverThreadRunningStatus2);
+		while(true) {
+			if(this.getServerThreadId().equalsIgnoreCase("Thread1"))
+				this.setServerThreadRunningStatus1("terminated");
+			if(this.getServerThreadId().equalsIgnoreCase("Thread2"))
+				this.setServerThreadRunningStatus2("terminated");
+			//System.out.println(serverThreadRunningStatus1);
+			//System.out.println(serverThreadRunningStatus2);
+			if(getServerThreadRunningStatus1().equalsIgnoreCase("terminated")
+					&&getServerThreadRunningStatus2().equalsIgnoreCase("terminated"))
+				break;
+			
+		}
+		Network.disconnect(Network.getServerIP()); 
+
+		
 	}
 }
