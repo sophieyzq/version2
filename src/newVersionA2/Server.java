@@ -37,9 +37,9 @@ public class Server extends Thread {
 	private static String serverThreadRunningStatus2; /* Running status of thread 2 - idle, running, terminated */
 	
 	//lockers for synchronization
-	  private final Object depositLocker = new Object();
-	  private final Object withdrawLocker = new Object();
-	  private final Object queryLocker = new Object();
+	 // private final Object depositLocker = new Object();
+	 // private final Object withdrawLocker = new Object();
+	  //private final Object queryLocker = new Object();
 	/**
 	 * Constructor method of Client class
 	 * 
@@ -281,7 +281,7 @@ public class Server extends Thread {
 				Network.transferIn(trans); /* Transfer a transaction from the network input buffer */
 				
 				accIndex = findAccount(trans.getAccountNumber());
-				synchronized(trans) {
+				//synchronized(trans) {
 					/* Process deposit operation */
 					if (trans.getOperationType().equals("DEPOSIT")) {
 						newBalance = deposit(accIndex, trans.getTransactionAmount());
@@ -339,7 +339,7 @@ public class Server extends Thread {
 					
 				}
 
-			}
+			//}
 		}
 
 		/*
@@ -358,7 +358,7 @@ public class Server extends Thread {
 	 */
 
 	 public double deposit(int i, double amount) {
-		 synchronized(depositLocker) {
+		 synchronized(account[i]) {
 				double curBalance; /* Current account balance */
 
 				curBalance = account[i].getBalance(); /* Get current account balance */
@@ -380,7 +380,7 @@ public class Server extends Thread {
 
 				account[i].setBalance(curBalance + amount); /* Deposit amount in the account */
 				//notify();
-				depositLocker.notifyAll();
+				account[i].notifyAll();
 				return account[i].getBalance(); /* Return updated account balance */
 				
 		 }
@@ -399,14 +399,14 @@ public class Server extends Thread {
 		
 		//if the amt is less than 
 		
-		synchronized(withdrawLocker) {
+		synchronized(account[i]) {
 			curBalance = account[i].getBalance(); /* Get current account balance */
 
 			System.out.println("\n DEBUG : Server.withdraw - " + "i " + i + " Current balance " + curBalance + " Amount "
 					+ amount + " " + getServerThreadId());
 
 			account[i].setBalance(curBalance - amount); /* Withdraw amount in the account */
-			withdrawLocker.notifyAll();
+			account[i].notifyAll();
 			return account[i].getBalance(); /* Return updated account balance */
 		}
 
@@ -428,7 +428,7 @@ public class Server extends Thread {
 	 */
 
 	public double query(int i) {
-		synchronized(queryLocker) {
+		synchronized(account[i]) {
 			double curBalance; /* Current account balance */
 
 			curBalance = account[i].getBalance(); /* Get current account balance */
@@ -436,7 +436,7 @@ public class Server extends Thread {
 			System.out.println(
 					"\n DEBUG : Server.query - " + "i " + i + " Current balance " + curBalance + " " + getServerThreadId());
 
-			queryLocker.notifyAll();
+			account[i].notifyAll();
 			return curBalance; /* Return current account balance */
 		}
 
