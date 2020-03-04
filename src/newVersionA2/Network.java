@@ -25,7 +25,9 @@ public class Network extends Thread {
     private static Transactions outGoingPacket[];              /* Outgoing network buffer */
     private static String inBufferStatus, outBufferStatus;     /* Current status of the network buffers - normal, full, empty */
     private static String networkStatus;                       /* Network status - active, inactive */
-       
+ 
+    //private static Semaphore inComingLocker;
+    //private static Semaphore outGoingLocker;
     /** 
      * Constructor of the Network class
      * 
@@ -57,6 +59,9 @@ public class Network extends Thread {
          outputIndexClient = 0;
                 
          networkStatus = "active";
+         
+         //outGoingLocker = new Semaphore(1);
+         //inComingLocker = new Semaphore(1);
       }     
         
      /** 
@@ -354,6 +359,12 @@ public class Network extends Thread {
      */
         public static boolean send(Transactions inPacket)
         {
+         	/*try {
+					inComingLocker.acquire();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}*/
         	
         		  inComingPacket[inputIndexClient].setAccountNumber(inPacket.getAccountNumber());
         		  inComingPacket[inputIndexClient].setOperationType(inPacket.getOperationType());
@@ -376,6 +387,7 @@ public class Network extends Thread {
         		  else 
         		  {
         			  setInBufferStatus("normal");
+        			  //inComingLocker.release();
         		  }
             
             return true;
@@ -388,6 +400,12 @@ public class Network extends Thread {
      */
          public static boolean receive(Transactions outPacket)
         {
+          	/*try {
+ 					outGoingLocker.acquire();
+ 				} catch (InterruptedException e) {
+ 					// TODO Auto-generated catch block
+ 					e.printStackTrace();
+ 				}*/
 
         		 outPacket.setAccountNumber(outGoingPacket[outputIndexClient].getAccountNumber());
         		 outPacket.setOperationType(outGoingPacket[outputIndexClient].getOperationType());
@@ -410,6 +428,7 @@ public class Network extends Thread {
         		 else 
         		 {
         			 setOutBufferStatus("normal"); 
+        			// outGoingLocker.release();
         		 }
         	            
              return true;
@@ -425,7 +444,12 @@ public class Network extends Thread {
      */
          public static boolean transferOut(Transactions outPacket)
         {
-	   	
+        	/* try {
+					outGoingLocker.acquire();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}*/
         		outGoingPacket[inputIndexServer].setAccountNumber(outPacket.getAccountNumber());
         		outGoingPacket[inputIndexServer].setOperationType(outPacket.getOperationType());
         		outGoingPacket[inputIndexServer].setTransactionAmount(outPacket.getTransactionAmount());
@@ -447,6 +471,7 @@ public class Network extends Thread {
         		else
         		{
         			setOutBufferStatus("normal");
+        			//outGoingLocker.release();
         		}
         	            
              return true;
@@ -460,7 +485,12 @@ public class Network extends Thread {
      */
        public static boolean transferIn(Transactions inPacket)
         {
-	
+           /*try {
+					inComingLocker.acquire();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}*/
     		     inPacket.setAccountNumber(inComingPacket[outputIndexServer].getAccountNumber());
     		     inPacket.setOperationType(inComingPacket[outputIndexServer].getOperationType());
     		     inPacket.setTransactionAmount(inComingPacket[outputIndexServer].getTransactionAmount());
@@ -482,6 +512,7 @@ public class Network extends Thread {
     		     else 
     		     {
     		    	 setInBufferStatus("normal");
+    		    	 //inComingLocker.release();
     		     }
             
              return true;
