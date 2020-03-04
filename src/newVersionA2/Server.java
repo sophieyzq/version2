@@ -271,7 +271,7 @@ public class Server extends Thread {
 			 //Thread.yield(); /* Yield the cpu if the network input buffer is empty */
 			// }
 
-			if (!Network.getInBufferStatus().equals("empty")) {
+			//if (!Network.getInBufferStatus().equals("empty")) {
 				/*
 				 * System.out.
 				 * println("\n DEBUG : Server.processTransactions() - transferring in account "
@@ -279,65 +279,71 @@ public class Server extends Thread {
 				 */
 
 				Network.transferIn(trans); /* Transfer a transaction from the network input buffer */
-				
-				accIndex = findAccount(trans.getAccountNumber());
-				//synchronized(trans) {
-					/* Process deposit operation */
-					if (trans.getOperationType().equals("DEPOSIT")) {
-						newBalance = deposit(accIndex, trans.getTransactionAmount());
-						trans.setTransactionBalance(newBalance);
-						trans.setTransactionStatus("done");
+				//if(Network.transferIn(trans)) {
+					
+					accIndex = findAccount(trans.getAccountNumber());
+					//synchronized(trans) {
+						/* Process deposit operation */
+						if (trans.getOperationType().equals("DEPOSIT")) {
+							newBalance = deposit(accIndex, trans.getTransactionAmount());
+							trans.setTransactionBalance(newBalance);
+							trans.setTransactionStatus("done");
 
-						/*
-						 * System.out.println("\n DEBUG : Server.processTransactions() - Deposit of " +
-						 * trans.getTransactionAmount() + " in account " + trans.getAccountNumber());
-						 */
-					} else
-					/* Process withdraw operation */
-					if (trans.getOperationType().equals("WITHDRAW")) {
-						newBalance = withdraw(accIndex, trans.getTransactionAmount());
-						trans.setTransactionBalance(newBalance);
-						trans.setTransactionStatus("done");
+							/*
+							 * System.out.println("\n DEBUG : Server.processTransactions() - Deposit of " +
+							 * trans.getTransactionAmount() + " in account " + trans.getAccountNumber());
+							 */
+						} else
+						/* Process withdraw operation */
+						if (trans.getOperationType().equals("WITHDRAW")) {
+							newBalance = withdraw(accIndex, trans.getTransactionAmount());
+							trans.setTransactionBalance(newBalance);
+							trans.setTransactionStatus("done");
 
-						/*
-						 * System.out.println("\n DEBUG : Server.processTransactions() - Withdrawal of "
-						 * + trans.getTransactionAmount() + " from account " +
-						 * trans.getAccountNumber());
-						 */
-					} else
-					/* Process query operation */
-					if (trans.getOperationType().equals("QUERY")) {
-						newBalance = query(accIndex);
-						trans.setTransactionBalance(newBalance);
-						trans.setTransactionStatus("done");
+							/*
+							 * System.out.println("\n DEBUG : Server.processTransactions() - Withdrawal of "
+							 * + trans.getTransactionAmount() + " from account " +
+							 * trans.getAccountNumber());
+							 */
+						} else
+						/* Process query operation */
+						if (trans.getOperationType().equals("QUERY")) {
+							newBalance = query(accIndex);
+							trans.setTransactionBalance(newBalance);
+							trans.setTransactionStatus("done");
+
+							/*
+							 * System.out.
+							 * println("\n DEBUG : Server.processTransactions() - Obtaining balance from account"
+							 * + trans.getAccountNumber());
+							 */
+						}
+
+						// while (Network.getOutBufferStatus().equals("full"))
+						// {
+						// Thread.yield(); /* Yield the cpu if the network output buffer is full */
+						// }
 
 						/*
 						 * System.out.
-						 * println("\n DEBUG : Server.processTransactions() - Obtaining balance from account"
+						 * println("\n DEBUG : Server.processTransactions() - transferring out account "
 						 * + trans.getAccountNumber());
 						 */
-					}
 
-					// while (Network.getOutBufferStatus().equals("full"))
-					// {
-					// Thread.yield(); /* Yield the cpu if the network output buffer is full */
-					// }
-
-					/*
-					 * System.out.
-					 * println("\n DEBUG : Server.processTransactions() - transferring out account "
-					 * + trans.getAccountNumber());
-					 */
-
-					Network.transferOut(
-							trans); /*
-									 * Transfer a completed transaction from the server to the network output buffer
-									 */
-					setNumberOfTransactions(
-							(getNumberOfTransactions() + 1)); /* Count the number of transactions processed */
+						Network.transferOut(
+								trans); /*
+										 ///* Transfer a completed transaction from the server to the network output buffer
+										 //*/
+						setNumberOfTransactions(
+								(getNumberOfTransactions() + 1)); /* Count the number of transactions processed */
+						/*if(Network.transferOut(trans)) {
+							setNumberOfTransactions(getNumberOfTransactions() + 1);
+							return true;
+						}*/
+				//}
 				
 					
-				}
+				//}
 
 			//}
 		}

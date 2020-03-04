@@ -170,6 +170,9 @@ public class Client extends Thread {
             /* System.out.println("\n DEBUG : Client.sendTransactions() - sending transaction on account " + transaction[i].getAccountNumber()); */ 
             
             Network.send(transaction[i]);                            /* Transmit current transaction */
+            /*if(Network.send(transaction[i])) {
+            	i++;
+            }*/
             i++;          
          }
          
@@ -194,7 +197,10 @@ public class Client extends Thread {
         	 //}
                                                                             	
             Network.receive(transact);                               	/* Receive updated transaction from the network buffer */
-            
+            /*if(Network.receive(transact)) {
+            	System.out.println(transact);
+            	i++;
+            }*/
             /* System.out.println("\n DEBUG : Client.receiveTransactions() - receiving updated transaction on account " + transact.getAccountNumber()); */
             
             System.out.println(transact);                               /* Display updated transaction */    

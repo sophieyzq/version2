@@ -32,10 +32,13 @@ public class Network extends Thread {
 			outBufferStatus; /* Current status of the network buffers - normal, full, empty */
 	private static String networkStatus; /* Network status - active, inactive */
 
-	private static Semaphore sendLocker = new Semaphore(1);
-	private static Semaphore transferInLocker = new Semaphore(1);;
-	private static Semaphore receiveLocker = new Semaphore(1);;
-	private static Semaphore transferOutLocker = new Semaphore(1);;
+	private static Semaphore sendLocker;
+	private static Semaphore transferInLocker;
+	private static Semaphore receiveLocker;
+	private static Semaphore transferOutLocker;
+	
+	private static Semaphore inBufferLocker;
+	private static Semaphore outBufferLocker;
 
 	/**
 	 * Constructor of the Network class
@@ -65,6 +68,16 @@ public class Network extends Thread {
 		inputIndexServer = 0;
 		outputIndexServer = 0;
 		outputIndexClient = 0;
+		
+		//initialize the buffer lockers number
+		//inBufferLocker = new Semaphore(maxNbPackets);
+		//outBufferLocker = new Semaphore(maxNbPackets); 
+		sendLocker = new Semaphore(maxNbPackets);
+		//waiting for sending to release signal
+		transferInLocker = new Semaphore(0);
+		//for out going buffer semaphore
+		transferOutLocker = new Semaphore(maxNbPackets);
+		receiveLocker = new Semaphore(0);
 
 		networkStatus = "active";
 
@@ -350,47 +363,45 @@ public class Network extends Thread {
 		 * try { inComingLocker.acquire(); } catch (InterruptedException e) { // TODO
 		 * Auto-generated catch block e.printStackTrace(); }
 		 */
-
-		inComingPacket[inputIndexClient].setAccountNumber(inPacket.getAccountNumber());
-		inComingPacket[inputIndexClient].setOperationType(inPacket.getOperationType());
-		inComingPacket[inputIndexClient].setTransactionAmount(inPacket.getTransactionAmount());
-		inComingPacket[inputIndexClient].setTransactionBalance(inPacket.getTransactionBalance());
-		inComingPacket[inputIndexClient].setTransactionError(inPacket.getTransactionError());
-		inComingPacket[inputIndexClient].setTransactionStatus("transferred");
-
-		/*
-		 * System.out.println("\n DEBUG : Network.send() - index inputIndexClient " +
-		 * inputIndexClient);
-		 */
-		/*
-		 * System.out.println("\n DEBUG : Network.send() - account number " +
-		 * inComingPacket[inputIndexClient].getAccountNumber());
-		 */
-
-		setinputIndexClient(((getinputIndexClient() + 1)
-				% getMaxNbPackets())); /* Increment the input buffer index for the client */
-		/* Check if input buffer is full */
-		if (getinputIndexClient() == getoutputIndexServer()) {
-			setInBufferStatus("full");
-			// If the buffer is full, then do not release the signal and wait for the
-			// transferring in server releases the signal
+		
+		//if(!Network.inBufferStatus.equalsIgnoreCase("full")) {
+			inComingPacket[inputIndexClient].setAccountNumber(inPacket.getAccountNumber());
+			inComingPacket[inputIndexClient].setOperationType(inPacket.getOperationType());
+			inComingPacket[inputIndexClient].setTransactionAmount(inPacket.getTransactionAmount());
+			inComingPacket[inputIndexClient].setTransactionBalance(inPacket.getTransactionBalance());
+			inComingPacket[inputIndexClient].setTransactionError(inPacket.getTransactionError());
+			inComingPacket[inputIndexClient].setTransactionStatus("transferred");
 
 			/*
-			 * System.out.println("\n DEBUG : Network.send() - inComingBuffer status " +
-			 * getInBufferStatus());
+			 * System.out.println("\n DEBUG : Network.send() - index inputIndexClient " +
+			 * inputIndexClient);
 			 */
-		} else {
-			setInBufferStatus("normal");
-			// If the in coming buffer has the space, then it can release a signal to the
-			// next one
-			sendLocker.release();
+			/*
+			 * System.out.println("\n DEBUG : Network.send() - account number " +
+			 * inComingPacket[inputIndexClient].getAccountNumber());
+			 */
+
+			setinputIndexClient(((getinputIndexClient() + 1)
+					% getMaxNbPackets())); /* Increment the input buffer index for the client */
+			/* Check if input buffer is full */
+			if (getinputIndexClient() == getoutputIndexServer()) {
+				setInBufferStatus("full");
+
+				/*
+				 * System.out.println("\n DEBUG : Network.send() - inComingBuffer status " +
+				 * getInBufferStatus());
+				 */
+			} else {
+				setInBufferStatus("normal");
+				// If the in coming buffer has the space, then it can release a signal to the
+				// next one
+				//sendLocker.release();
+			//}
 		}
+			transferInLocker.release();
+			return true;
 
-		// once finish the sending process, it can release a signal for transferring in
-		// server
-		transferInLocker.release();
-
-		return true;
+		//return false;
 	}
 
 	/**
@@ -410,7 +421,7 @@ public class Network extends Thread {
 		}
 
 		// check if output is empty
-		if (!Network.outBufferStatus.equalsIgnoreCase("empty")) {
+		//if (!Network.outBufferStatus.equalsIgnoreCase("empty")) {
 			outPacket.setAccountNumber(outGoingPacket[outputIndexClient].getAccountNumber());
 			outPacket.setOperationType(outGoingPacket[outputIndexClient].getOperationType());
 			outPacket.setTransactionAmount(outGoingPacket[outputIndexClient].getTransactionAmount());
@@ -439,15 +450,15 @@ public class Network extends Thread {
 				 */
 			} else {
 				setOutBufferStatus("normal");
-				receiveLocker.release();
+				//receiveLocker.release();
 			}
 			//release the signal to out buffer transferring out 
 			transferOutLocker.release();
 			
 			return true;
-		}
+		//}
 
-		return false;
+		//return false;
 	}
 
 	/**
@@ -470,7 +481,7 @@ public class Network extends Thread {
 			e.printStackTrace();
 		}
 		
-		if(!Network.outBufferStatus.equalsIgnoreCase("full")) {
+		//if(!Network.outBufferStatus.equalsIgnoreCase("full")) {
 			outGoingPacket[inputIndexServer].setAccountNumber(outPacket.getAccountNumber());
 			outGoingPacket[inputIndexServer].setOperationType(outPacket.getOperationType());
 			outGoingPacket[inputIndexServer].setTransactionAmount(outPacket.getTransactionAmount());
@@ -501,18 +512,16 @@ public class Network extends Thread {
 				 */
 			} else {
 				setOutBufferStatus("normal");
-				transferOutLocker.release();
+				//transferOutLocker.release();
 			}
 			
 			receiveLocker.release();
 			
 			return true;
 			
-		}
-		
+		//}
 
-
-		return false;
+		//return false;
 	}
 
 	/**
@@ -531,7 +540,7 @@ public class Network extends Thread {
 		}
 
 		// check if input buffer is empty
-		if (!Network.inBufferStatus.equalsIgnoreCase("empty")) {
+		//if (!Network.inBufferStatus.equalsIgnoreCase("empty")) {
 			inPacket.setAccountNumber(inComingPacket[outputIndexServer].getAccountNumber());
 			inPacket.setOperationType(inComingPacket[outputIndexServer].getOperationType());
 			inPacket.setTransactionAmount(inComingPacket[outputIndexServer].getTransactionAmount());
@@ -562,16 +571,15 @@ public class Network extends Thread {
 				 */
 			} else {
 				setInBufferStatus("normal");
-				transferInLocker.release();
+				//transferInLocker.release();
 			}
 			// after finishing the transferring in, it can release the signal to the sending
 			// process
 			sendLocker.release();
-
 			return true;
-		}
+		//}
 
-		return false;
+		//return false;
 	}
 
 	/**
